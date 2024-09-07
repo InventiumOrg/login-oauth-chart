@@ -1,0 +1,41 @@
+name: Build and Push to ECR
+
+on:
+  push:
+    branches: ["main"]
+
+env:
+  REPOSITORY: 205098647215.dkr.ecr.ap-southeast-1.amazonaws.com
+  IMAGE: login-oauth
+  ORG: inventium
+  TYPE: chart
+  VERSION: 0.2.0
+
+jobs:
+  continuous-integration:
+    name: Helm Chart CI
+    runs-on: ubuntu-latest
+    steps:
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: ap-southeast-1
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
+      - name: Login to AWS ECR
+        run: |-
+          aws ecr get-login-password --region ap-southeast-1 | helm registry login --username AWS --password-stdin $REPOSITORY
+
+      - uses: actions/checkout@v3
+      - name: Helm Package Build
+        run: |-
+          cd ..
+          mkdir ./$IMAGE
+          cp -r ./$IMAGE-$TYPE/. ./$IMAGE/.
+          helm package ./$IMAGE
+
+      - name: Helm Push to ECR
+        run: |-
+          cd ..
+          helm push $IMAGE-$VERSION.tgz oci://$REPOSITORY/$ORG/$TYPE

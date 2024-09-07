@@ -5,9 +5,7 @@ metadata:
   labels:
     {{- include "login-oauth-chart.labels" . | nindent 4 }}
 spec:
-  {{- if not .Values.autoscaling.enabled }}
   replicas: {{ .Values.replicaCount }}
-  {{- end }}
   selector:
     matchLabels:
       {{- include "login-oauth-chart.selectorLabels" . | nindent 6 }}
@@ -40,12 +38,15 @@ spec:
             - name: http
               containerPort: {{ .Values.service.port }}
               protocol: TCP
-          livenessProbe:
-            {{- toYaml .Values.livenessProbe | nindent 12 }}
-          readinessProbe:
-            {{- toYaml .Values.readinessProbe | nindent 12 }}
-          resources:
-            {{- toYaml .Values.resources | nindent 12 }}
+          env:
+            - name: MONGO_URI
+              value: {{ .Values.mongo.uri }}
+            - name:
+              value: {{ .Values.mongo.username }}
+            - name: 
+              value: {{ .Values.mongo.password }}
+            - name: PORT
+              value: {{ .Values.service.port | quote }}
           {{- with .Values.volumeMounts }}
           volumeMounts:
             {{- toYaml . | nindent 12 }}
